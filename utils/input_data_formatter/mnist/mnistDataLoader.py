@@ -1,3 +1,4 @@
+import os
 import struct
 import gzip
 import sys
@@ -5,13 +6,15 @@ import sys
 import configuration.config as config
 import utils.base_utils.colors as colors
 import configuration.sharedData as sharedData
-import  utils.image_printer as imagePrinter
+import utils.image_printer as imagePrinter
 
 
 def loadTrainingSets(testIndex, fast):
 
-    labelFile = open(config.LABEL_TRAINING_SET_PATH, "rb")
-    imgFile = gzip.open(config.IMAGE_TRAINING_SET_PATH, 'r')
+    fileDir = os.path.dirname(os.path.realpath('__file__'))
+
+    labelFile = open(os.path.join(fileDir, config.LABEL_TRAINING_SET_PATH), "rb")
+    imgFile = gzip.open(os.path.join(fileDir, config.IMAGE_TRAINING_SET_PATH), 'r')
 
     imageSize = config.SAMPLE_IMAGE_SIZE
     imageFlatSize = imageSize * imageSize
@@ -20,6 +23,7 @@ def loadTrainingSets(testIndex, fast):
     magicNumber, numberOfSamples = struct.unpack(">II", labelFile.read(8))
 
     imagesDataSet = []
+    imgFile.read(16)
 
     if fast:
         numberOfSamples = 100
@@ -31,31 +35,30 @@ def loadTrainingSets(testIndex, fast):
 
     # print("magic number: ", magicNumber)
 
+    print(colors.bcolors.HEADER + ' Loading data Started...')
+
     try:
         for i in range(numberOfSamples):
+
+            # importing label data
             label = struct.unpack('B', labelFile.read(1))[0]
             labelsDataSet.append(label)
-    finally:
-        labelFile.close()
+            sharedData.TrainingDataSet.labelIndexes[label].append(i)
 
-    imgFile.read(16)
-    try:
-        print(colors.bcolors.HEADER + ' Loading data Started...')
-
-        for i in range(numberOfSamples):
+            # importing image data
             imgDataArray = []
-
             for k in range(imageFlatSize):
                 pixelData = struct.unpack('B', imgFile.read(1))[0]
                 imgDataArray.append(pixelData)
 
             msg = '\033[92m' + " sample number " + str(i + 1) + \
-                  " created." + '\033[94m' + "remains " + str(numberOfSamples-i-1)
+                  " created." + '\033[94m' + "remains " + str(numberOfSamples - i - 1)
             sys.stdout.write('\r' + msg)
 
             imagesDataSet.append(imgDataArray)
     finally:
         imgFile.close()
+        labelFile.close()
 
     print('  ')
     print('')
@@ -69,4 +72,3 @@ def loadTrainingSets(testIndex, fast):
         # printImageLabel(labelsDataSet, imagesDataSet, testIndex)
 
 
-loadTrainingSets(testIndex=20, fast=True)
