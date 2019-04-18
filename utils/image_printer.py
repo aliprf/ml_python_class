@@ -5,6 +5,15 @@ import configuration.config as config
 import configuration.sharedData as sharedData
 
 
+def printImageBuffer(imgData):
+    data = np.array(imgData)
+    data = data.reshape((config.SAMPLE_IMAGE_SIZE, config.SAMPLE_IMAGE_SIZE))
+
+    image = np.asarray(data).squeeze()
+    plt.imshow(image)
+    plt.show()
+
+
 def printImageLabel(labelData, imgData, index):
     print(labelData[index])
     data = np.array(imgData[index])
@@ -16,7 +25,7 @@ def printImageLabel(labelData, imgData, index):
 
 
 def printImageLabel(index):
-    if not sharedData.TrainingDataSet.labelsDataSet or not sharedData.TrainingDataSet.imagesDataSet :
+    if not sharedData.TrainingDataSet.labelsDataSet or not sharedData.TrainingDataSet.imagesDataSet:
         print("TrainingDataSet is empty")
         return
 
