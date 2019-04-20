@@ -2,8 +2,6 @@ import os
 import struct
 import gzip
 import sys
-from tqdm import tqdm
-
 import configuration.config as config
 import utils.base_utils.colors as colors
 import configuration.sharedData as sharedData
@@ -50,7 +48,7 @@ def loadTrainingSets(testIndex, fast, sampleSize):
             imgDataArray = []
             for k in range(imageFlatSize):
                 pixelData = struct.unpack('B', imgFile.read(1))[0]
-                imgDataArray.append(pixelData)
+                imgDataArray.append(pixelData/255)
 
             msg = '\033[92m' + " sample number " + str(i + 1) + \
                   " created." + '\033[94m' + "remains " + str(numberOfSamples - i - 1)

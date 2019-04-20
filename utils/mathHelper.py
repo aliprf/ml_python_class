@@ -1,35 +1,37 @@
 import configuration.config as config
 import configuration.sharedData as shd
 from statistics import mean
-import numpy as np  # this is just for test, no more :)
+import numpy as np
 from collections import defaultdict
 from tqdm import tqdm
 import random
 
 
+def calculateDistance(vectorA , vectorB): # for each items: ( (b1-a1)p2 + (b2-a2)p2 + ... ) power 1/2
+    sumSquare = 0
+    for i in range(len(vectorA)):
+        sumSquare += pow((vectorB[i] - vectorA[i]), 2)
+    return pow(sumSquare, 1/2)
+
+
 def calculatePreDiscriminantParameters(index):
+    prior = 1 / len(shd.TrainingDataSet.labelIndexes[index])
+
     meanVector = np.array(shd.TrainingDataSet.meanVectorByLabel.get(index))[np.newaxis]
     tr_meanVector = meanVector.T
 
     covMat = np.array(shd.TrainingDataSet.covarianceMatrixByLabel[index])
 
-    mInverse = np.linalg.inv(covMat)
-    detCov = np.linalg.det(shd.TrainingDataSet.covarianceMatrixByLabel[index])
-
+    mInverse = np.linalg.pinv(covMat)
+    # detCov = np.linalg.det(shd.TrainingDataSet.covarianceMatrixByLabel[index])
+    detCov = np.exp(np.trace(covMat))
     shd.TrainingDataSet.W_matrix_ByLabel[index] = -1 / 2 * mInverse
 
     tmp = np.dot(mInverse, tr_meanVector)
     shd.TrainingDataSet.w_matrix_ByLabel[index] = tmp.T
 
     shd.TrainingDataSet.w_zero_ByLabel[index] = -1 / 2 * np.dot(np.dot(meanVector, mInverse), tr_meanVector) \
-                                                - 1 / 2 * np.log(detCov) \
-                                                + np.log(1 / 10)
-    print('W_matrix_ByLabel')
-    # print(shd.TrainingDataSet.W_matrix_ByLabel[index])
-    # print('w_matrix_ByLabel')
-    # print(shd.TrainingDataSet.w_matrix_ByLabel[index])
-    # print('w_zero_ByLabel')
-    # print(shd.TrainingDataSet.w_zero_ByLabel [index] )
+                                                  - 1 / 2 * np.log(detCov) + np.log(prior)
 
 
 def calculateMeanByIndexes(indexes, needTest):
@@ -84,12 +86,42 @@ def calculateCovarianceByIndexes(meanVector, indexes):  # Sum( (x-m)t(x-m) ) / n
 
     for i in range(vectorSize):
         for j in range(vectorSize):
-            if covarianceMatrixDataSet[i][j] == 0:
-                covarianceMatrixDataSet[i][j] = random.uniform(0.000001, 0.00001)
-            covarianceMatrixDataSet[i][j] /= len(indexes)
+            # x = random.uniform(0.00000000001, 0.00000000003)
+            # covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] + x) / len(indexes)
+            covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] ) / len(indexes)
+
+    covMat = np.array(covarianceMatrixDataSet)
+    return covarianceMatrixDataSet
+
+
+def __calculateCovarianceByIndexes(meanVector, indexes):  # Sum( (x-m)t(x-m) ) / n
+    vectorSize = config.SAMPLE_IMAGE_SIZE * config.SAMPLE_IMAGE_SIZE
+    xMinMeanVector = [0] * vectorSize
+
+    covarianceMatrixDataSet = [[0 for x in range(vectorSize)] for y in range(vectorSize)]
+    print('sample_size')
+    print(len(indexes))
+    for counter, index in tqdm(enumerate(indexes)):  # each sample
+
+        # vector = shd.TrainingDataSet.imagesDataSet[index]
+        for i in range(vectorSize):
+            xMinMeanVector[i] = shd.TrainingDataSet.imagesDataSet[index][i] - meanVector[i]
+
+        # calculating covarianceMatrix for sample Xi
+        covarianceMatrixSamples = calculateCoMatrix(xMinMeanVector)
+        for i in range(vectorSize):
+            for j in range(vectorSize):
+                covarianceMatrixDataSet[i][j] += covarianceMatrixSamples[i][j]
 
     covMat = np.array(covarianceMatrixDataSet)
 
+    for i in range(vectorSize):
+        for j in range(vectorSize):
+            x = random.uniform(0.00000000001, 0.00000000003)
+            covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] + x) / len(indexes)
+            # covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] ) / len(indexes)
+
+    covMat = np.array(covarianceMatrixDataSet)
     return covarianceMatrixDataSet
 
 
@@ -114,29 +146,6 @@ def _calculateCoMatrix(vector):  # input is [a, b ,c] --> we calculate xt * x = 
 
     return covMatrix
 
-
-# covarianceMatrixSamples = []
-# v1 = [1, 2, 3]
-# v2 = [2, 5, 0]
-#
-# covarianceMatrixSamples.append(calculateCoMatrix(v1))
-# covarianceMatrixSamples.append(calculateCoMatrix(v2))
-# print('covarianceMatrixSamples')
-# print(covarianceMatrixSamples)
-# print('---------------')
-#
-# cov = [[0 for x in range(3)] for y in range(3)]
-# # print(cov)
-# for row in range(2):
-#     tmp=covarianceMatrixSamples[row]
-#     print(tmp)
-#     for i in range(3):
-#         for j in range(3):
-#             cov[i][j] += tmp[i][j]
-#
-# print('-----cov----------')
-# print(cov)
-# print('---------------')
 
 def calculateCovarianceByIndexesTest(meanVector, indexes, needTest):
     vectorSize = config.SAMPLE_IMAGE_SIZE * config.SAMPLE_IMAGE_SIZE
@@ -188,3 +197,28 @@ def testMean(classDataMatrix, calculatedMean):
 #                [10., 8.2, 4.3, 2.6, 0.9]
 #              ])
 # print(np.cov(X))
+
+
+
+# covarianceMatrixSamples = []
+# v1 = [1, 2, 3]
+# v2 = [2, 5, 0]
+#
+# covarianceMatrixSamples.append(calculateCoMatrix(v1))
+# covarianceMatrixSamples.append(calculateCoMatrix(v2))
+# print('covarianceMatrixSamples')
+# print(covarianceMatrixSamples)
+# print('---------------')
+#
+# cov = [[0 for x in range(3)] for y in range(3)]
+# # print(cov)
+# for row in range(2):
+#     tmp=covarianceMatrixSamples[row]
+#     print(tmp)
+#     for i in range(3):
+#         for j in range(3):
+#             cov[i][j] += tmp[i][j]
+#
+# print('-----cov----------')
+# print(cov)
+# print('---------------')

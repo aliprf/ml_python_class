@@ -15,3 +15,27 @@ class TrainingDataSet(object):
 class TestSetData(object):
     labelsDataSet = []
     imagesDataSet = []
+
+
+class Results(object):
+    resultByIndex = defaultdict(list)
+    number_of_all_samples = 0
+    number_of_corrects = 0
+
+
+class KNN_Results_1(object):
+    resultByIndex = defaultdict(list)
+    number_of_all_samples = 0
+    number_of_corrects = 0
+
+
+class KNN_Results_3(object):
+    resultByIndex = defaultdict(list)
+    number_of_all_samples = 0
+    number_of_corrects = 0
+
+
+class KNN_Results_5(object):
+    resultByIndex = defaultdict(list)
+    number_of_all_samples = 0
+    number_of_corrects = 0
