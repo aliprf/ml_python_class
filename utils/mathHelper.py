@@ -5,13 +5,15 @@ import numpy as np
 from collections import defaultdict
 from tqdm import tqdm
 import random
+import math
 
 
 def calculateDistance(vectorA , vectorB): # for each items: ( (b1-a1)p2 + (b2-a2)p2 + ... ) power 1/2
     sumSquare = 0
     for i in range(len(vectorA)):
-        sumSquare += pow((vectorB[i] - vectorA[i]), 2)
-    return pow(sumSquare, 1/2)
+        sumSquare += math.pow(abs((vectorB[i] - vectorA[i])), 2)
+    x = math.sqrt(sumSquare)
+    return x
 
 
 def calculatePreDiscriminantParameters(index):
@@ -34,8 +36,42 @@ def calculatePreDiscriminantParameters(index):
                                                   - 1 / 2 * np.log(detCov) + np.log(prior)
 
 
-def calculateMeanByIndexes(indexes, needTest):
-    vectorSize = config.SAMPLE_IMAGE_SIZE * config.SAMPLE_IMAGE_SIZE
+def calculateEigenValue_and_EigenVector(matrix):
+    matrix = np.array(matrix)
+    eigenValues, eigenVectors = np.linalg.eig(matrix)
+
+    idx = eigenValues.argsort()[::-1]
+    eigenValues = eigenValues[idx]
+    eigenVectors = eigenVectors[:, idx]
+
+    return eigenValues, eigenVectors
+
+
+def normalizeDsByMinusToMean(meanVector):
+
+    vectorSize = config.MNIST_DS_SAMPLE_IMAGE_SIZE * config.MNIST_DS_SAMPLE_IMAGE_SIZE
+
+    for index in  range(len(shd.TrainingDataSet.imagesDataSet)):
+        # retrieve img vector
+        vector = shd.TrainingDataSet.imagesDataSet[index]
+        normalizedVector = [0] * vectorSize
+
+        for i in range(vectorSize):
+            normalizedVector[i] = (vector[i] - meanVector[i])
+
+        shd.TrainingDataSet.imagesDataSet[index] = normalizedVector
+
+        # lv= np.array(vector)
+        # mv = np.array(meanVector)
+        # nw = np.array(normalizedVector)
+
+
+def calculateMeanByIndexes(indexes, needTest, dynamicSize):
+    if dynamicSize:
+        vectorSize = config.MNIST_DS_SAMPLE_REDUCED_IMAGE_SIZE
+    else:
+        vectorSize = config.MNIST_DS_SAMPLE_IMAGE_SIZE * config.MNIST_DS_SAMPLE_IMAGE_SIZE
+
     meanVector = [0] * vectorSize
 
     # just for testing
@@ -53,18 +89,40 @@ def calculateMeanByIndexes(indexes, needTest):
             meanVector[i] = meanVector[i] / vectorSize
 
         # just testing it
-        if needTest:
-            classDataMatrix.append(vector)
-            # print(vector[:])
+        # if needTest:
+        #     classDataMatrix.append(vector)
+        #     # print(vector[:])
 
-    if needTest:
-        testMean(classDataMatrix=classDataMatrix, calculatedMean=meanVector)
+    # if needTest:
+    #     testMean(classDataMatrix=classDataMatrix, calculatedMean=meanVector)
+    x= np.array(meanVector)
+    return meanVector
+
+
+def calculateMeanVector():
+    vectorSize = config.MNIST_DS_SAMPLE_IMAGE_SIZE * config.MNIST_DS_SAMPLE_IMAGE_SIZE
+    meanVector = [0] * vectorSize
+
+    for index in range(len(shd.TrainingDataSet.imagesDataSet)):
+        # retrieve img vector
+        vector = shd.TrainingDataSet.imagesDataSet[index]
+
+        # calculate mean till this index
+        for i in range(vectorSize):
+            meanVector[i] = (meanVector[i] + vector[i])
+
+        for i in range(vectorSize):
+            meanVector[i] = meanVector[i] / vectorSize
 
     return meanVector
 
 
-def calculateCovarianceByIndexes(meanVector, indexes):  # Sum( (x-m)t(x-m) ) / n
-    vectorSize = config.SAMPLE_IMAGE_SIZE * config.SAMPLE_IMAGE_SIZE
+def calculateCovarianceByIndexes(meanVector, indexes, dynamicSize):  # Sum( (x-m)t(x-m) ) / n
+    if dynamicSize:
+        vectorSize = config.MNIST_DS_SAMPLE_REDUCED_IMAGE_SIZE
+    else:
+        vectorSize = config.MNIST_DS_SAMPLE_IMAGE_SIZE * config.MNIST_DS_SAMPLE_IMAGE_SIZE
+
     xMinMeanVector = [0] * vectorSize
 
     covarianceMatrixDataSet = [[0 for x in range(vectorSize)] for y in range(vectorSize)]
@@ -94,18 +152,17 @@ def calculateCovarianceByIndexes(meanVector, indexes):  # Sum( (x-m)t(x-m) ) / n
     return covarianceMatrixDataSet
 
 
-def __calculateCovarianceByIndexes(meanVector, indexes):  # Sum( (x-m)t(x-m) ) / n
-    vectorSize = config.SAMPLE_IMAGE_SIZE * config.SAMPLE_IMAGE_SIZE
+def calculateCovariance(meanVector):  # Sum( (x-m)t(x-m) ) / n
+    vectorSize = config.MNIST_DS_SAMPLE_IMAGE_SIZE * config.MNIST_DS_SAMPLE_IMAGE_SIZE
     xMinMeanVector = [0] * vectorSize
 
     covarianceMatrixDataSet = [[0 for x in range(vectorSize)] for y in range(vectorSize)]
-    print('sample_size')
-    print(len(indexes))
-    for counter, index in tqdm(enumerate(indexes)):  # each sample
+
+    for counter, index in tqdm(enumerate(shd.TrainingDataSet.imagesDataSet)):  # each sample
 
         # vector = shd.TrainingDataSet.imagesDataSet[index]
         for i in range(vectorSize):
-            xMinMeanVector[i] = shd.TrainingDataSet.imagesDataSet[index][i] - meanVector[i]
+            xMinMeanVector[i] = shd.TrainingDataSet.imagesDataSet[counter][i] - meanVector[i]
 
         # calculating covarianceMatrix for sample Xi
         covarianceMatrixSamples = calculateCoMatrix(xMinMeanVector)
@@ -113,13 +170,11 @@ def __calculateCovarianceByIndexes(meanVector, indexes):  # Sum( (x-m)t(x-m) ) /
             for j in range(vectorSize):
                 covarianceMatrixDataSet[i][j] += covarianceMatrixSamples[i][j]
 
-    covMat = np.array(covarianceMatrixDataSet)
+    # covMat = np.array(covarianceMatrixDataSet)
 
     for i in range(vectorSize):
         for j in range(vectorSize):
-            x = random.uniform(0.00000000001, 0.00000000003)
-            covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] + x) / len(indexes)
-            # covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] ) / len(indexes)
+            covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] ) / len(shd.TrainingDataSet.imagesDataSet)
 
     covMat = np.array(covarianceMatrixDataSet)
     return covarianceMatrixDataSet
@@ -134,55 +189,84 @@ def calculateCoMatrix(vector):  # input is [a, b ,c] --> we calculate xt * x = m
 
     return covMatrix
 
+# def __calculateCovarianceByIndexes(meanVector, indexes):  # Sum( (x-m)t(x-m) ) / n
+#     vectorSize = config.MNIST_DS_SAMPLE_IMAGE_SIZE * config.MNIST_DS_SAMPLE_IMAGE_SIZE
+#     xMinMeanVector = [0] * vectorSize
+#
+#     covarianceMatrixDataSet = [[0 for x in range(vectorSize)] for y in range(vectorSize)]
+#     print('sample_size')
+#     print(len(indexes))
+#     for counter, index in tqdm(enumerate(indexes)):  # each sample
+#
+#         # vector = shd.TrainingDataSet.imagesDataSet[index]
+#         for i in range(vectorSize):
+#             xMinMeanVector[i] = shd.TrainingDataSet.imagesDataSet[index][i] - meanVector[i]
+#
+#         # calculating covarianceMatrix for sample Xi
+#         covarianceMatrixSamples = calculateCoMatrix(xMinMeanVector)
+#         for i in range(vectorSize):
+#             for j in range(vectorSize):
+#                 covarianceMatrixDataSet[i][j] += covarianceMatrixSamples[i][j]
+#
+#     covMat = np.array(covarianceMatrixDataSet)
+#
+#     for i in range(vectorSize):
+#         for j in range(vectorSize):
+#             x = random.uniform(0.00000000001, 0.00000000003)
+#             covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] + x) / len(indexes)
+#             # covarianceMatrixDataSet[i][j] = (covarianceMatrixDataSet[i][j] ) / len(indexes)
+#
+#     covMat = np.array(covarianceMatrixDataSet)
+#     return covarianceMatrixDataSet
 
-def _calculateCoMatrix(vector):  # input is [a, b ,c] --> we calculate xt * x = matrix
-    covMatrix = [0] * len(vector)
-
-    for row in range(len(vector)):
-        rowArr = [0] * len(vector)
-        for col in range(len(vector)):
-            rowArr[col] = vector[row] * vector[col]
-        covMatrix[row] = rowArr
-
-    return covMatrix
-
-
-def calculateCovarianceByIndexesTest(meanVector, indexes, needTest):
-    vectorSize = config.SAMPLE_IMAGE_SIZE * config.SAMPLE_IMAGE_SIZE
-    classDataMatrix = []
-
-    for index in indexes:  # each sample x0 ---> xn
-        # retrieve img vector
-        vector = shd.TrainingDataSet.imagesDataSet[index]
-        classDataMatrix.append(vector)
-
-    arr = np.array(classDataMatrix)
-    covMat = np.cov(arr)
-
-    # print(covMat)
-    # print('------------')
-    return covMat
+# def _calculateCoMatrix(vector):  # input is [a, b ,c] --> we calculate xt * x = matrix
+#     covMatrix = [0] * len(vector)
+#
+#     for row in range(len(vector)):
+#         rowArr = [0] * len(vector)
+#         for col in range(len(vector)):
+#             rowArr[col] = vector[row] * vector[col]
+#         covMatrix[row] = rowArr
+#
+#     return covMatrix
 
 
-def testMean(classDataMatrix, calculatedMean):
-    print('testing mean: ')
-    npArr = np.array(classDataMatrix)
+# def calculateCovarianceByIndexesTest(meanVector, indexes, needTest):
+#     vectorSize = config.MNIST_DS_SAMPLE_IMAGE_SIZE * config.MNIST_DS_SAMPLE_IMAGE_SIZE
+#     classDataMatrix = []
+#
+#     for index in indexes:  # each sample x0 ---> xn
+#         # retrieve img vector
+#         vector = shd.TrainingDataSet.imagesDataSet[index]
+#         classDataMatrix.append(vector)
+#
+#     arr = np.array(classDataMatrix)
+#     covMat = np.cov(arr)
+#
+#     # print(covMat)
+#     # print('------------')
+#     return covMat
 
-    newMean = list(map(mean, zip(calculatedMean)))
 
-    npMean = npArr.mean(axis=0)
-
-    snp = 0
-    sus = 0
-    nus = 0
-
-    for i in range(len(calculatedMean)):
-        snp += npMean[i]
-        nus += newMean[i]
-        sus += calculatedMean[i]
-
-    print('me--> ' + str(sus / len(calculatedMean)) + ' --- ' + str(nus / len(calculatedMean)) + ' <--npm')
-    print('==============')
+# def testMean(classDataMatrix, calculatedMean):
+#     print('testing mean: ')
+#     npArr = np.array(classDataMatrix)
+#
+#     newMean = list(map(mean, zip(calculatedMean)))
+#
+#     npMean = npArr.mean(axis=0)
+#
+#     snp = 0
+#     sus = 0
+#     nus = 0
+#
+#     for i in range(len(calculatedMean)):
+#         snp += npMean[i]
+#         nus += newMean[i]
+#         sus += calculatedMean[i]
+#
+#     print('me--> ' + str(sus / len(calculatedMean)) + ' --- ' + str(nus / len(calculatedMean)) + ' <--npm')
+#     print('==============')
 
 # #
 # a = np.array([[1, 3, 4, 2], [3, 3, 0, 2]])
