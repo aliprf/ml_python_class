@@ -38,7 +38,7 @@ def calculatePreDiscriminantParameters(index):
 
 def calculateEigenValue_and_EigenVector(matrix):
     matrix = np.array(matrix)
-    eigenValues, eigenVectors = np.linalg.eig(matrix)
+    eigenValues, eigenVectors = np.linalg.eigh(matrix)
 
     idx = eigenValues.argsort()[::-1]
     eigenValues = eigenValues[idx]

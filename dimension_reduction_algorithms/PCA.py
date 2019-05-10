@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import utils.input_data_formatter.mnist.mnistDataLoader as dataLoader
 import configuration.sharedData as sharedData
 import utils.mathHelper as mh
@@ -9,6 +11,7 @@ import configuration.config as config
 from collections import defaultdict
 import classification_algorithms.beysianClassifier as bc
 import classification_algorithms.knnClassifier_thread as KNN
+import classification_algorithms.svm as svm
 
 
 def reduceDimensionAndCreateNewData(accuracyIndex):
@@ -56,38 +59,8 @@ def calculateEigenDiversity(accuracyArray):
 
 
 def loadData():
-    dataLoader.loadTrainingSets(testIndex=-1, fast=False, sampleSize=2000, dt_type=config.dataset_type.mnist_hw)
+    dataLoader.loadTrainingSets(testIndex=-1, fast=False, sampleSize=100, dt_type=config.dataset_type.mnist_hw)
     dataLoader.loadTestSets(dt_type=config.dataset_type.mnist_hw)
-
-
-# def __startPCA():
-#     for i, values in sharedData.TrainingDataSet.labelIndexes.items():
-#         print(colors.bcolors.HEADER + ' calculating Mean Vector for Dataset_Label: ' + colors.bcolors.OKBLUE + str(i))
-#         sharedData.TrainingDataSet.meanVectorByLabel[i] = mh.calculateMeanByIndexes(indexes=values, needTest=False)
-#
-#         print(colors.bcolors.HEADER + ' Normalize data by Minus by Mean Vector for Dataset_Label: ' + colors.bcolors.OKBLUE + str(i))
-#         mh.normalizeDsByMinusToMean(indexes=values, meanVector=sharedData.TrainingDataSet.meanVectorByLabel[i])
-#
-#         print(colors.bcolors.HEADER + ' calculating normalized_data_Mean Vector for Dataset_Label: ' + colors.bcolors.OKBLUE + str(i))
-#         sharedData.TrainingDataSet.meanVectorByLabel[i] = mh.calculateMeanByIndexes(indexes=values, needTest=False)
-#
-#         # imgPrinter.printImageBuffer(sharedData.TrainingDataSet.meanVectorByLabel.get(i))
-#
-#         print(colors.bcolors.HEADER + ' calculating CoV Matrix for Dataset_Label: ' + colors.bcolors.OKBLUE + str(i))
-#         sharedData.TrainingDataSet.covarianceMatrixByLabel[i] = mh.calculateCovarianceByIndexes(
-#             meanVector=sharedData.TrainingDataSet.meanVectorByLabel[i], indexes=values)
-#
-#         print('')
-#         print(colors.bcolors.HEADER + ' calculating eigen value & vector for Dataset_Label: ' +
-#               colors.bcolors.OKBLUE + str(i))
-#         sharedData.TrainingDataSet.eigenValueByLabel[i], sharedData.TrainingDataSet.eigenVectorByLabel[i] = \
-#             mh.calculateEigenValue_and_EigenVector(matrix=sharedData.TrainingDataSet.covarianceMatrixByLabel[i])
-#         # imgPrinter.printEigenValues(datasetLabel=i)
-#
-#         print(colors.bcolors.HEADER + ' calculating All PCAs for Dataset_Label: ' + colors.bcolors.OKBLUE + str(i))
-#         calculateEigenDiversity(config.PCA_ACCURACY_ARRAY, datasetLabel=i)
-#
-#         print(colors.bcolors.HEADER + ' Reducing Dimensions nnd Creating new Data for Dataset_Label: ' + colors.bcolors.OKBLUE + str(i))
 
 
 def startPCA():
@@ -125,8 +98,11 @@ for index in range(len(config.PCA_ACCURACY_ARRAY)):
     x = sharedData.TrainingDataSet.imagesDataSet[1]
     y = np.array(sharedData.TrainingDataSet.imagesDataSet[1])
 
-    print('KNN Method Started ==>')
-    KNN.startKNN(_dynamicSize=True)
+    # print('KNN Method Started ==>')
+    # KNN.startKNN(_dynamicSize=True)
+    #
+    # print('Beysian Method Started ==>')
+    # bc.startBeysian(_dynamicSize=True)
 
-    print('Beysian Method Started ==>')
-    bc.startBeysian(_dynamicSize=True)
+    print('SVM Started ==>')
+    svm.thread_svm_init(False)
