@@ -52,6 +52,10 @@ def relu(z):
     return np.array([max(x, 0) for x in z])
 
 
+def d_mse(y, y_h):
+    return 2.0 * (y - y_h)
+
+
 def feed_forward(x, parameters: dict):
     w_inp_to_l1 = parameters['w_inp_to_l1']
     w_l1_l2 = parameters['w_l1_l2']
@@ -61,14 +65,45 @@ def feed_forward(x, parameters: dict):
 
     '''calculation'''
     z_1 = np.dot(x, w_inp_to_l1) + b_l1
-    a_1 = sigmoid(z_1)
+    a_1 = relu(z_1)
 
     z_2 = np.dot(a_1, w_l1_l2) + b_l2
-    a_2 = sigmoid(z_2)
+    a_2 = relu(z_2)
 
     z_out = np.dot(a_2, w_l2_out)
     # out = sigmoid(z_out) # For classification
     return z_out[0]
+
+
+def back_propagation(x:int, y: int, y_h: int, parameters: dict,  lr=0.1):
+    w_inp_to_l1 = parameters['w_inp_to_l1']
+    w_l1_l2 = parameters['w_l1_l2']
+    w_l2_out = parameters['w_l2_out']
+    b_l1 = parameters['b_l1']
+    b_l2 = parameters['b_l2']
+    '''calculation'''
+    c = np.square(y - y_hat)
+    '''y= x^2 => dy/dx = 2x'''
+    d_c_yh = d_mse(y, y_h)  #
+
+    '''d_c_wl2 = dc/d_yh * d_yh/d_zout * d_zout/d_wl2
+    c => y=x^2 => dc/d_yh= 2*(y-yh)
+    yh => y = relu(x) =>  d_yh/d_zout = der_relu(zout)  
+    d_zout = d_wl2 * a1 => d_zout/d_wl2 = a1
+    '''
+
+    z_out =
+
+    ''' '''
+    w_l2_out_new = w_l2_out - lr * d_c_wl2
+    w_l1_l2_new = w_l1_l2 - lr * d_c_wl1
+    w_inp_to_l1_new = w_inp_to_l1 - lr * d_c_inp
+
+    parameters['w_inp_to_l1'] = w_inp_to_l1_new
+    parameters['w_l1_l2'] = w_l1_l2_new
+    parameters['w_l2_out'] = w_l2_out_new
+    pass
+
 
 
 if __name__ == '__main__':
@@ -91,4 +126,8 @@ if __name__ == '__main__':
         y_hat = feed_forward(x, parameters)
         '''loss'''
         loss = np.square(y - y_hat)
-        pass
+        '''back propagation'''
+        back_propagation(x=x, y=y, y_h=y_hat, parameters=parameters)
+        print(loss)
+
+

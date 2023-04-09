@@ -40,7 +40,6 @@ def processData(readData):
         dataLoader.loadTrainingSets(testIndex=-1, fast=False, sampleSize=150, dt_type=config.dataset_type.mnist_hw)
         dataLoader.loadTestSets(dt_type=config.dataset_type.mnist_hw)
 
-
     data = {'train': {'img': shd.TrainingDataSet.imagesDataSet,
                       'lbl': shd.TrainingDataSet.labelsDataSet},
             'test': {'img': shd.TestSetData.imagesDataSet,
